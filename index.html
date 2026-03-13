@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marko Gym</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to bottom, #f3f4f6, #ffffff);
+      color: #111827;
+      padding: 16px;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      margin-bottom: 16px;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+
+    .grid-2, .grid-3 {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      height: 42px;
+      border: 1px solid #d1d5db;
+      border-radius: 14px;
+      padding: 0 12px;
+      font-size: 15px;
+      background: #fff;
+    }
+
+    .exercise {
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #fafafa;
+    }
+
+    .exercise h3 {
+      font-size: 17px;
+      margin-bottom: 4px;
+    }
+
+    .exercise p {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }
+
+    .stat-box {
+      background: #f3f4f6;
+      border-radius: 16px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-box .small {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .stat-box .big {
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .volume-line {
+      margin-top: 10px;
+      background: #eef2f7;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 480px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="title">Marko Gym</div>
+      <div class="subtitle">Trening log za telefon</div>
+
+      <div class="grid-2">
+        <div>
+          <label for="date">Datum</label>
+          <input type="date" id="date" />
+        </div>
+        <div>
+          <label for="bodyWeight">Telesna težina (kg)</label>
+          <input type="number" id="bodyWeight" step="0.1" value="116.7" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-bottom: 14px;">Vežbe</h2>
+      <div id="exerciseList"></div>
+    </div>
+
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label for="duration">Trajanje treninga (min)</label>
+          <input type="number" id="duration" step="1" value="25" />
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-top: 16px;">
+        <div class="stat-box">
+          <div class="small">Ukupan volumen</div>
+          <div class="big" id="totalVolume">0 kg</div>
+        </div>
+        <div class="stat-box">
+          <div class="small">Gustina</div>
+          <div class="big" id="density">0 kg/min</div>
+        </div>
+        <div class="stat-box">
+          <div class="small">Broj vežbi</div>
+          <div class="big" id="exerciseCount">0</div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        Aplikacija automatski računa volumen i gustinu treninga.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const exercises = [
+      { name: "Alternating dumbbell curl", muscle: "Biceps", sets: 3, reps: 9, weight: 20 },
+      { name: "Alternating front dumbbell curl", muscle: "Biceps + rame", sets: 3, reps: 9, weight: 20 },
+      { name: "Reverse fly", muscle: "Rame / gornja leđa", sets: 3, reps: 8, weight: 16 },
+      { name: "Leg press", muscle: "Noge / gluteus", sets: 3, reps: 8, weight: 40 },
+      { name: "Bench press", muscle: "Grudi / triceps", sets: 3, reps: 8, weight: 40 },
+      { name: "Machine Chest Press", muscle: "Grudi / triceps", sets: 3, reps: 10, weight: 35 },
+      { name: "Deadlift", muscle: "Leđa / zadnja loža / gluteus", sets: 3, reps: 8, weight: 40 }
+    ];
+
+    const exerciseList = document.getElementById("exerciseList");
+    const totalVolumeEl = document.getElementById("totalVolume");
+    const densityEl = document.getElementById("density");
+    const exerciseCountEl = document.getElementById("exerciseCount");
+    const durationInput = document.getElementById("duration");
+    const dateInput = document.getElementById("date");
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+
+    function renderExercises() {
+      exerciseList.innerHTML = "";
+
+      exercises.forEach((exercise, index) => {
+        const div = document.createElement("div");
+        div.className = "exercise";
+
+        div.innerHTML = `
+          <h3>${exercise.name}</h3>
+          <p>${exercise.muscle}</p>
+
+          <div class="grid-3">
+            <div>
+              <label>Serije</label>
+              <input type="number" min="0" step="1" value="${exercise.sets}" data-index="${index}" data-field="sets" />
+            </div>
+            <div>
+              <label>Ponavljanja</label>
+              <input type="number" min="0" step="1" value="${exercise.reps}" data-index="${index}" data-field="reps" />
+            </div>
+            <div>
+              <label>Težina (kg)</label>
+              <input type="number" min="0" step="0.1" value="${exercise.weight}" data-index="${index}" data-field="weight" />
+            </div>
+          </div>
+
+          <div class="volume-line">
+            <span>Volumen</span>
+            <strong id="volume-${index}">0 kg</strong>
+          </div>
+        `;
+
+        exerciseList.appendChild(div);
+      });
+
+      document.querySelectorAll("input[data-index]").forEach((input) => {
+        input.addEventListener("input", handleExerciseChange);
+      });
+
+      durationInput.addEventListener("input", updateTotals);
+      updateTotals();
+    }
+
+    function handleExerciseChange(e) {
+      const index = Number(e.target.dataset.index);
+      const field = e.target.dataset.field;
+      exercises[index][field] = Number(e.target.value) || 0;
+      updateTotals();
+    }
+
+    function updateTotals() {
+      let totalVolume = 0;
+
+      exercises.forEach((exercise, index) => {
+        const volume = exercise.sets * exercise.reps * exercise.weight;
+        totalVolume += volume;
+
+        const volEl = document.getElementById(`volume-${index}`);
+        if (volEl) {
+          volEl.textContent = `${volume.toFixed(0)} kg`;
+        }
+      });
+
+      const duration = Number(durationInput.value) || 0;
+      const density = duration > 0 ? totalVolume / duration : 0;
+
+      totalVolumeEl.textContent = `${totalVolume.toFixed(0)} kg`;
+      densityEl.textContent = `${density.toFixed(0)} kg/min`;
+      exerciseCountEl.textContent = exercises.length;
+    }
+
+    renderExercises();
+  </script>
+</body>
+</html>
