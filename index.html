@@ -127,9 +127,53 @@
       margin-top: 8px;
     }
 
+    .button-row {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      height: 44px;
+      padding: 0 16px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .primary-btn {
+      background: #111827;
+      color: white;
+      flex: 1;
+    }
+
+    .secondary-btn {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 14px;
+      text-align: center;
+      color: #374151;
+      min-height: 20px;
+    }
+
     @media (max-width: 480px) {
       .grid-2, .grid-3 {
         grid-template-columns: 1fr;
+      }
+
+      .button-row {
+        flex-direction: column;
+      }
+
+      .primary-btn,
+      .secondary-btn {
+        width: 100%;
       }
     }
   </style>
@@ -180,6 +224,13 @@
         </div>
       </div>
 
+      <div class="button-row">
+        <button class="primary-btn" id="saveWorkoutBtn">Sačuvaj trening</button>
+        <button class="secondary-btn" id="resetBtn">Reset</button>
+      </div>
+
+      <div class="status" id="statusMessage"></div>
+
       <div class="footer-note">
         Aplikacija automatski računa volumen i gustinu treninga.
       </div>
@@ -187,6 +238,8 @@
   </div>
 
   <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcWdCBEuoRNunnLqYo7YwxHW5e9bzg2mf-jUrsbBenzYCSc37bujV6PGBjg3njtralIw/exec";
+
     const exercises = [
       { name: "Alternating dumbbell curl", muscle: "Biceps", sets: 3, reps: 9, weight: 20 },
       { name: "Alternating front dumbbell curl", muscle: "Biceps + rame", sets: 3, reps: 9, weight: 20 },
@@ -203,6 +256,10 @@
     const exerciseCountEl = document.getElementById("exerciseCount");
     const durationInput = document.getElementById("duration");
     const dateInput = document.getElementById("date");
+    const bodyWeightInput = document.getElementById("bodyWeight");
+    const saveWorkoutBtn = document.getElementById("saveWorkoutBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const statusMessage = document.getElementById("statusMessage");
 
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -260,7 +317,7 @@
       updateTotals();
     }
 
-    function updateTotals() {
+    function calculateTotalVolume() {
       let totalVolume = 0;
 
       exercises.forEach((exercise, index) => {
@@ -273,6 +330,11 @@
         }
       });
 
+      return totalVolume;
+    }
+
+    function updateTotals() {
+      const totalVolume = calculateTotalVolume();
       const duration = Number(durationInput.value) || 0;
       const density = duration > 0 ? totalVolume / duration : 0;
 
@@ -280,6 +342,63 @@
       densityEl.textContent = `${density.toFixed(0)} kg/min`;
       exerciseCountEl.textContent = exercises.length;
     }
+
+    async function saveWorkout() {
+      try {
+        statusMessage.textContent = "Snimanje treninga...";
+
+        const totalVolume = calculateTotalVolume();
+        const duration = Number(durationInput.value) || 0;
+        const density = duration > 0 ? totalVolume / duration : 0;
+
+        const payload = {
+          date: dateInput.value,
+          body_weight: Number(bodyWeightInput.value) || 0,
+          duration_min: duration,
+          total_volume: Number(totalVolume.toFixed(0)),
+          density: Number(density.toFixed(0)),
+          exercises: exercises
+        };
+
+        const response = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          }
+        });
+
+        const result = await response.json();
+
+        if (result.status === "success") {
+          statusMessage.textContent = "Trening je uspešno sačuvan u Google Sheet.";
+        } else {
+          statusMessage.textContent = "Greška pri snimanju: " + (result.message || "Nepoznata greška");
+        }
+      } catch (error) {
+        statusMessage.textContent = "Greška pri slanju podataka.";
+        console.error(error);
+      }
+    }
+
+    function resetWorkout() {
+      exercises[0].sets = 3; exercises[0].reps = 9; exercises[0].weight = 20;
+      exercises[1].sets = 3; exercises[1].reps = 9; exercises[1].weight = 20;
+      exercises[2].sets = 3; exercises[2].reps = 8; exercises[2].weight = 16;
+      exercises[3].sets = 3; exercises[3].reps = 8; exercises[3].weight = 40;
+      exercises[4].sets = 3; exercises[4].reps = 8; exercises[4].weight = 40;
+      exercises[5].sets = 3; exercises[5].reps = 10; exercises[5].weight = 35;
+      exercises[6].sets = 3; exercises[6].reps = 8; exercises[6].weight = 40;
+
+      bodyWeightInput.value = "116.7";
+      durationInput.value = "25";
+      statusMessage.textContent = "";
+
+      renderExercises();
+    }
+
+    saveWorkoutBtn.addEventListener("click", saveWorkout);
+    resetBtn.addEventListener("click", resetWorkout);
 
     renderExercises();
   </script>
