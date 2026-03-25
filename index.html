@@ -240,15 +240,18 @@
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcWdCBEuoRNunnLqYo7YwxHW5e9bzg2mf-jUrsbBenzYCSc37bujV6PGBjg3njtralIw/exec";
 
-    const exercises = [
+    const defaultExercises = [
       { name: "Alternating dumbbell curl", muscle: "Biceps", sets: 3, reps: 9, weight: 20 },
       { name: "Alternating front dumbbell curl", muscle: "Biceps + rame", sets: 3, reps: 9, weight: 20 },
       { name: "Reverse fly", muscle: "Rame / gornja leđa", sets: 3, reps: 8, weight: 16 },
+      { name: "Row", muscle: "Leđa", sets: 3, reps: 10, weight: 35 },
       { name: "Leg press", muscle: "Noge / gluteus", sets: 3, reps: 8, weight: 40 },
       { name: "Bench press", muscle: "Grudi / triceps", sets: 3, reps: 8, weight: 40 },
       { name: "Machine Chest Press", muscle: "Grudi / triceps", sets: 3, reps: 10, weight: 35 },
       { name: "Deadlift", muscle: "Leđa / zadnja loža / gluteus", sets: 3, reps: 8, weight: 40 }
     ];
+
+    let exercises = JSON.parse(JSON.stringify(defaultExercises));
 
     const exerciseList = document.getElementById("exerciseList");
     const totalVolumeEl = document.getElementById("totalVolume");
@@ -382,18 +385,10 @@
     }
 
     function resetWorkout() {
-      exercises[0].sets = 3; exercises[0].reps = 9; exercises[0].weight = 20;
-      exercises[1].sets = 3; exercises[1].reps = 9; exercises[1].weight = 20;
-      exercises[2].sets = 3; exercises[2].reps = 8; exercises[2].weight = 16;
-      exercises[3].sets = 3; exercises[3].reps = 8; exercises[3].weight = 40;
-      exercises[4].sets = 3; exercises[4].reps = 8; exercises[4].weight = 40;
-      exercises[5].sets = 3; exercises[5].reps = 10; exercises[5].weight = 35;
-      exercises[6].sets = 3; exercises[6].reps = 8; exercises[6].weight = 40;
-
+      exercises = JSON.parse(JSON.stringify(defaultExercises));
       bodyWeightInput.value = "116.7";
       durationInput.value = "25";
       statusMessage.textContent = "";
-
       renderExercises();
     }
 
