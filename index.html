@@ -317,13 +317,7 @@
     }
 
     function calculateTotalVolume() {
-      let totalVolume = 0;
-
-      exercises.forEach((exercise) => {
-        totalVolume += calculateVolume(exercise);
-      });
-
-      return totalVolume;
+      return exercises.reduce((sum, exercise) => sum + calculateVolume(exercise), 0);
     }
 
     function getLastSession() {
@@ -436,16 +430,35 @@
 
           <div class="volume-line">
             <span>Volumen</span>
-            <strong>${volume.toFixed(0)} kg</strong>
+            <strong id="volume-${index}">${volume.toFixed(0)} kg</strong>
           </div>
 
-          <div class="e1rm-line">
+          <div class="e1rm-line" id="e1rm-${index}">
             e1RM: ${e1rm > 0 ? `${e1rm.toFixed(1)} kg` : "-"}
           </div>
         `;
 
         exerciseList.appendChild(div);
       });
+    }
+
+    function updateExerciseUI(index) {
+      const exercise = exercises[index];
+      if (!exercise) return;
+
+      const volumeEl = document.getElementById(`volume-${index}`);
+      const e1rmEl = document.getElementById(`e1rm-${index}`);
+
+      const volume = calculateVolume(exercise);
+      const e1rm = calculateE1RM(exercise.weight, exercise.reps);
+
+      if (volumeEl) {
+        volumeEl.textContent = `${volume.toFixed(0)} kg`;
+      }
+
+      if (e1rmEl) {
+        e1rmEl.textContent = `e1RM: ${e1rm > 0 ? `${e1rm.toFixed(1)} kg` : "-"}`;
+      }
     }
 
     function updateTotals() {
@@ -459,12 +472,6 @@
       exerciseCountEl.textContent = exerciseCount;
     }
 
-    function renderAll() {
-      renderExercises();
-      updateTotals();
-      saveDraft();
-    }
-
     function handleExerciseChange(e) {
       const index = Number(e.target.dataset.index);
       const field = e.target.dataset.field;
@@ -472,7 +479,10 @@
       if (Number.isNaN(index) || !field || !exercises[index]) return;
 
       exercises[index][field] = Number(e.target.value) || 0;
-      renderAll();
+
+      updateExerciseUI(index);
+      updateTotals();
+      saveDraft();
     }
 
     function validateWorkout() {
@@ -536,7 +546,6 @@
         if (result.status === "success") {
           localStorage.setItem(LAST_SESSION_KEY, JSON.stringify(payload));
           saveDraft();
-          renderAll();
           statusMessage.textContent = "Trening je uspešno sačuvan u Google Sheet.";
         } else {
           statusMessage.textContent = "Greška pri snimanju: " + (result.message || "Nepoznata greška");
@@ -557,7 +566,8 @@
       durationInput.value = "25";
       statusMessage.textContent = "";
       saveDraft();
-      renderAll();
+      renderExercises();
+      updateTotals();
     }
 
     exerciseList.addEventListener("input", (e) => {
@@ -578,7 +588,8 @@
     resetBtn.addEventListener("click", resetWorkout);
 
     loadDraft();
-    renderAll();
+    renderExercises();
+    updateTotals();
   </script>
 </body>
 </html>
