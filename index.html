@@ -291,8 +291,8 @@
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcWdCBEuoRNunnLqYo7YwxHW5e9bzg2mf-jUrsbBenzYCSc37bujV6PGBjg3njtralIw/exec";
 
-    const STORAGE_KEY = "marko_gym_session_draft_v3";
-    const LAST_SESSION_KEY = "marko_gym_last_session_v3";
+    const STORAGE_KEY = "marko_gym_session_draft_v4";
+    const LAST_SESSION_KEY = "marko_gym_last_session_v4";
 
     const defaultExercises = [
       { name: "Alternating dumbbell curl", muscle: "Biceps", sets: "3", reps: "9", weight: "20" },
@@ -306,6 +306,7 @@
     ];
 
     let exercises = deepCopy(defaultExercises);
+    let backendLastSession = null;
 
     const exerciseList = document.getElementById("exerciseList");
     const totalVolumeEl = document.getElementById("totalVolume");
@@ -368,8 +369,7 @@
       const w = toNumber(weight);
       const r = toNumber(reps);
 
-      if (w <= 0 || r <= 0) return 0;
-      if (r >= 37) return 0;
+      if (w <= 0 || r <= 0 || r >= 37) return 0;
 
       const denominator = 1.0278 - 0.0278 * r;
       if (denominator <= 0) return 0;
@@ -387,33 +387,6 @@
 
     function calculateTotalVolume() {
       return exercises.reduce((sum, exercise) => sum + calculateVolume(exercise), 0);
-    }
-
-    function getLastSession() {
-      const raw = localStorage.getItem(LAST_SESSION_KEY);
-      if (!raw) return null;
-
-      try {
-        return JSON.parse(raw);
-      } catch (error) {
-        console.error("Greška pri čitanju poslednjeg treninga:", error);
-        return null;
-      }
-    }
-
-    function buildLastSessionMap() {
-      const lastSession = getLastSession();
-      const map = new Map();
-
-      if (!lastSession || !Array.isArray(lastSession.exercises)) {
-        return map;
-      }
-
-      lastSession.exercises.forEach(ex => {
-        map.set(ex.name, ex);
-      });
-
-      return map;
     }
 
     function saveDraft() {
@@ -453,6 +426,54 @@
         bodyWeightInput.value = "116.7";
         durationInput.value = "25";
         exercises = deepCopy(defaultExercises);
+      }
+    }
+
+    function getLocalLastSession() {
+      const raw = localStorage.getItem(LAST_SESSION_KEY);
+      if (!raw) return null;
+
+      try {
+        return JSON.parse(raw);
+      } catch (error) {
+        console.error("Greška pri čitanju lokalnog poslednjeg treninga:", error);
+        return null;
+      }
+    }
+
+    function getLastSession() {
+      return backendLastSession || getLocalLastSession();
+    }
+
+    function buildLastSessionMap() {
+      const lastSession = getLastSession();
+      const map = new Map();
+
+      if (!lastSession || !Array.isArray(lastSession.exercises)) {
+        return map;
+      }
+
+      lastSession.exercises.forEach(ex => {
+        map.set(ex.name, ex);
+      });
+
+      return map;
+    }
+
+    async function loadBackendLastSession() {
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: "GET"
+        });
+
+        const result = await response.json();
+
+        if (result.status === "success" && result.last_session) {
+          backendLastSession = result.last_session;
+          localStorage.setItem(LAST_SESSION_KEY, JSON.stringify(result.last_session));
+        }
+      } catch (error) {
+        console.error("Greška pri učitavanju poslednjeg treninga sa backend-a:", error);
       }
     }
 
@@ -668,7 +689,12 @@
         const result = await response.json();
 
         if (result.status === "success") {
-          localStorage.setItem(LAST_SESSION_KEY, JSON.stringify(payload));
+          backendLastSession = {
+            id: payload.id,
+            date: payload.date,
+            exercises: payload.exercises
+          };
+          localStorage.setItem(LAST_SESSION_KEY, JSON.stringify(backendLastSession));
           saveDraft();
           statusMessage.textContent = "Trening je uspešno sačuvan u Google Sheet.";
           renderExercises();
@@ -718,9 +744,14 @@
     saveWorkoutBtn.addEventListener("click", saveWorkout);
     resetBtn.addEventListener("click", resetWorkout);
 
-    loadDraft();
-    renderExercises();
-    updateTotals();
+    async function initApp() {
+      loadDraft();
+      await loadBackendLastSession();
+      renderExercises();
+      updateTotals();
+    }
+
+    initApp();
   </script>
 </body>
 </html>
