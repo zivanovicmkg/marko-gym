@@ -1,231 +1,698 @@
-function doPost(e) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    if (!ss) {
-      throw new Error("Apps Script nije vezan za Google Sheet.");
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marko Gym</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
     }
 
-    const sessionsSheet = getOrCreateSheet_(ss, "WorkoutSessions", [
-      "session_id",
-      "date",
-      "body_weight",
-      "duration_min",
-      "total_volume",
-      "density",
-      "exercise_count",
-      "created_at"
-    ]);
-
-    const exerciseLogSheet = getOrCreateSheet_(ss, "ExerciseLog", [
-      "session_id",
-      "date",
-      "exercise_name",
-      "muscle",
-      "sets",
-      "reps",
-      "weight",
-      "volume",
-      "e1rm",
-      "performed",
-      "created_at"
-    ]);
-
-    const payload = JSON.parse(e.postData.contents || "{}");
-
-    const sessionId = String(payload.id || Date.now());
-    const date = payload.date || "";
-    const bodyWeight = toNumber_(payload.body_weight);
-    const durationMin = toNumber_(payload.duration_min);
-    const totalVolume = toNumber_(payload.total_volume);
-    const density = toNumber_(payload.density);
-    const exercises = Array.isArray(payload.exercises) ? payload.exercises : [];
-    const createdAt = new Date();
-
-    const performedCount = exercises.filter(ex =>
-      toNumber_(ex.sets) > 0 &&
-      toNumber_(ex.reps) > 0 &&
-      toNumber_(ex.weight) > 0
-    ).length;
-
-    sessionsSheet.appendRow([
-      sessionId,
-      date,
-      bodyWeight,
-      durationMin,
-      totalVolume,
-      density,
-      performedCount,
-      createdAt
-    ]);
-
-    const exerciseRows = exercises.map(ex => {
-      const sets = toNumber_(ex.sets);
-      const reps = toNumber_(ex.reps);
-      const weight = toNumber_(ex.weight);
-      const volume = sets * reps * weight;
-      const e1rm = calculateE1RM_(weight, reps);
-      const performed = sets > 0 && reps > 0 && weight > 0 ? 1 : 0;
-
-      return [
-        sessionId,
-        date,
-        ex.name || "",
-        ex.muscle || "",
-        sets,
-        reps,
-        weight,
-        volume,
-        e1rm,
-        performed,
-        createdAt
-      ];
-    });
-
-    if (exerciseRows.length > 0) {
-      const startRow = exerciseLogSheet.getLastRow() + 1;
-      exerciseLogSheet.getRange(startRow, 1, exerciseRows.length, exerciseRows[0].length).setValues(exerciseRows);
+    body {
+      background: linear-gradient(to bottom, #f3f4f6, #ffffff);
+      color: #111827;
+      padding: 16px;
     }
 
-    formatSheets_(sessionsSheet, exerciseLogSheet);
-
-    return jsonResponse_({
-      status: "success",
-      message: "Workout saved.",
-      session_id: sessionId
-    });
-  } catch (error) {
-    return jsonResponse_({
-      status: "error",
-      message: error.message || "Unknown error"
-    });
-  }
-}
-
-function doGet() {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    if (!ss) {
-      throw new Error("Apps Script nije vezan za Google Sheet.");
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
     }
 
-    const sessionsSheet = ss.getSheetByName("WorkoutSessions");
-    const exerciseLogSheet = ss.getSheetByName("ExerciseLog");
+    .card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      margin-bottom: 16px;
+    }
 
-    if (!sessionsSheet || !exerciseLogSheet || sessionsSheet.getLastRow() < 2 || exerciseLogSheet.getLastRow() < 2) {
-      return jsonResponse_({
-        status: "success",
-        last_session: null
+    .title {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+
+    .grid-2, .grid-3 {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      height: 42px;
+      border: 1px solid #d1d5db;
+      border-radius: 14px;
+      padding: 0 12px;
+      font-size: 15px;
+      background: #fff;
+    }
+
+    .exercise {
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #fafafa;
+    }
+
+    .exercise h3 {
+      font-size: 17px;
+      margin-bottom: 4px;
+    }
+
+    .exercise p {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .ghost-line {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 10px;
+      background: #eef2f7;
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .volume-line {
+      margin-top: 10px;
+      background: #eef2f7;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #6b7280;
+      flex-wrap: wrap;
+    }
+
+    .e1rm-line {
+      text-align: right;
+    }
+
+    .suggestion {
+      font-weight: bold;
+      border-radius: 10px;
+      padding: 4px 8px;
+      background: #f3f4f6;
+    }
+
+    .suggestion.up {
+      color: #065f46;
+      background: #d1fae5;
+    }
+
+    .suggestion.same {
+      color: #374151;
+      background: #e5e7eb;
+    }
+
+    .suggestion.down {
+      color: #991b1b;
+      background: #fee2e2;
+    }
+
+    .stat-box {
+      background: #f3f4f6;
+      border-radius: 16px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-box .small {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .stat-box .big {
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .button-row {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      height: 44px;
+      padding: 0 16px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .primary-btn {
+      background: #111827;
+      color: white;
+      flex: 1;
+    }
+
+    .secondary-btn {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 14px;
+      text-align: center;
+      color: #374151;
+      min-height: 20px;
+    }
+
+    @media (max-width: 480px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .button-row {
+        flex-direction: column;
+      }
+
+      .primary-btn,
+      .secondary-btn {
+        width: 100%;
+      }
+
+      .meta-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="title">Marko Gym</div>
+      <div class="subtitle">Trening log za telefon</div>
+
+      <div class="grid-2">
+        <div>
+          <label for="date">Datum</label>
+          <input type="date" id="date" />
+        </div>
+        <div>
+          <label for="bodyWeight">Telesna težina (kg)</label>
+          <input type="text" id="bodyWeight" inputmode="decimal" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-bottom: 14px;">Vežbe</h2>
+      <div id="exerciseList"></div>
+    </div>
+
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label for="duration">Trajanje treninga (min)</label>
+          <input type="text" id="duration" inputmode="numeric" />
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-top: 16px;">
+        <div class="stat-box">
+          <div class="small">Ukupan volumen</div>
+          <div class="big" id="totalVolume">0 kg</div>
+        </div>
+        <div class="stat-box">
+          <div class="small">Gustina</div>
+          <div class="big" id="density">0 kg/min</div>
+        </div>
+        <div class="stat-box">
+          <div class="small">Broj vežbi</div>
+          <div class="big" id="exerciseCount">0</div>
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button class="primary-btn" id="saveWorkoutBtn">Sačuvaj trening</button>
+        <button class="secondary-btn" id="resetBtn">Reset</button>
+      </div>
+
+      <div class="status" id="statusMessage"></div>
+
+      <div class="footer-note">
+        Aplikacija automatski računa volumen, gustinu i e1RM.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcWdCBEuoRNunnLqYo7YwxHW5e9bzg2mf-jUrsbBenzYCSc37bujV6PGBjg3njtralIw/exec";
+    const STORAGE_KEY = "marko_gym_session_draft_v5";
+
+    const defaultExercises = [
+      { name: "Alternating dumbbell curl", muscle: "Biceps", sets: "3", reps: "9", weight: "20" },
+      { name: "Alternating front dumbbell curl", muscle: "Biceps + rame", sets: "3", reps: "9", weight: "20" },
+      { name: "Reverse fly", muscle: "Rame / gornja leđa", sets: "3", reps: "8", weight: "16" },
+      { name: "Row", muscle: "Leđa", sets: "3", reps: "10", weight: "35" },
+      { name: "Leg press", muscle: "Noge / gluteus", sets: "3", reps: "8", weight: "40" },
+      { name: "Bench press", muscle: "Grudi / triceps", sets: "3", reps: "8", weight: "40" },
+      { name: "Machine Chest Press", muscle: "Grudi / triceps", sets: "3", reps: "10", weight: "35" },
+      { name: "Deadlift", muscle: "Leđa / zadnja loža / gluteus", sets: "3", reps: "8", weight: "40" }
+    ];
+
+    let exercises = deepCopy(defaultExercises);
+    let backendLastSession = null;
+
+    const exerciseList = document.getElementById("exerciseList");
+    const totalVolumeEl = document.getElementById("totalVolume");
+    const densityEl = document.getElementById("density");
+    const exerciseCountEl = document.getElementById("exerciseCount");
+    const durationInput = document.getElementById("duration");
+    const dateInput = document.getElementById("date");
+    const bodyWeightInput = document.getElementById("bodyWeight");
+    const saveWorkoutBtn = document.getElementById("saveWorkoutBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const statusMessage = document.getElementById("statusMessage");
+
+    function deepCopy(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function getTodayString() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function toNumber(value) {
+      if (typeof value === "number") return value;
+      if (typeof value !== "string") return 0;
+      const normalized = value.replace(",", ".").trim();
+      if (normalized === "") return 0;
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function sanitizeNumericText(value, allowDecimal = false) {
+      const str = String(value ?? "");
+      let cleaned = str.replace(",", ".");
+
+      if (allowDecimal) {
+        cleaned = cleaned.replace(/[^0-9.]/g, "");
+        const firstDot = cleaned.indexOf(".");
+        if (firstDot !== -1) {
+          cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "");
+        }
+      } else {
+        cleaned = cleaned.replace(/\D/g, "");
+      }
+
+      return cleaned;
+    }
+
+    function calculateVolume(exercise) {
+      return toNumber(exercise.sets) * toNumber(exercise.reps) * toNumber(exercise.weight);
+    }
+
+    function calculateE1RM(weight, reps) {
+      const w = toNumber(weight);
+      const r = toNumber(reps);
+      if (w <= 0 || r <= 0 || r >= 37) return 0;
+      const denominator = 1.0278 - 0.0278 * r;
+      if (denominator <= 0) return 0;
+      return w / denominator;
+    }
+
+    function getPerformedExerciseCount() {
+      return exercises.filter(ex =>
+        toNumber(ex.sets) > 0 &&
+        toNumber(ex.reps) > 0 &&
+        toNumber(ex.weight) > 0
+      ).length;
+    }
+
+    function calculateTotalVolume() {
+      return exercises.reduce((sum, exercise) => sum + calculateVolume(exercise), 0);
+    }
+
+    function saveDraft() {
+      const draft = {
+        date: dateInput.value,
+        bodyWeight: bodyWeightInput.value,
+        duration: durationInput.value,
+        exercises: deepCopy(exercises)
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    }
+
+    function loadDraft() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+
+      if (!raw) {
+        dateInput.value = getTodayString();
+        bodyWeightInput.value = "116.7";
+        durationInput.value = "25";
+        exercises = deepCopy(defaultExercises);
+        return;
+      }
+
+      try {
+        const draft = JSON.parse(raw);
+        dateInput.value = draft.date || getTodayString();
+        bodyWeightInput.value = draft.bodyWeight || "116.7";
+        durationInput.value = draft.duration || "25";
+        exercises = Array.isArray(draft.exercises) && draft.exercises.length
+          ? draft.exercises
+          : deepCopy(defaultExercises);
+      } catch (error) {
+        dateInput.value = getTodayString();
+        bodyWeightInput.value = "116.7";
+        durationInput.value = "25";
+        exercises = deepCopy(defaultExercises);
+      }
+    }
+
+    async function loadBackendLastSession() {
+      try {
+        const response = await fetch(SCRIPT_URL);
+        const result = await response.json();
+
+        if (result.status === "success" && result.last_session) {
+          backendLastSession = result.last_session;
+        } else {
+          backendLastSession = null;
+        }
+      } catch (error) {
+        console.error("Greška pri učitavanju poslednjeg treninga:", error);
+        backendLastSession = null;
+      }
+    }
+
+    function buildLastSessionMap() {
+      const map = new Map();
+
+      if (!backendLastSession || !Array.isArray(backendLastSession.exercises)) {
+        return map;
+      }
+
+      backendLastSession.exercises.forEach(ex => {
+        map.set(ex.name, ex);
+      });
+
+      return map;
+    }
+
+    function getSuggestion(currentExercise, lastExercise) {
+      if (!lastExercise) {
+        return { text: "→ ostavi", cls: "same" };
+      }
+
+      const currentE1RM = calculateE1RM(currentExercise.weight, currentExercise.reps);
+      const lastE1RM = calculateE1RM(lastExercise.weight, lastExercise.reps);
+
+      if (currentE1RM <= 0 || lastE1RM <= 0) {
+        return { text: "→ ostavi", cls: "same" };
+      }
+
+      const diff = currentE1RM - lastE1RM;
+
+      if (diff >= 1.0) return { text: "↑ povećaj", cls: "up" };
+      if (diff <= -1.0) return { text: "↓ smanji", cls: "down" };
+
+      return { text: "→ ostavi", cls: "same" };
+    }
+
+    function renderExercises() {
+      const lastSessionMap = buildLastSessionMap();
+      exerciseList.innerHTML = "";
+
+      exercises.forEach((exercise, index) => {
+        const div = document.createElement("div");
+        div.className = "exercise";
+
+        const volume = calculateVolume(exercise);
+        const e1rm = calculateE1RM(exercise.weight, exercise.reps);
+        const lastExercise = lastSessionMap.get(exercise.name);
+        const suggestion = getSuggestion(exercise, lastExercise);
+
+        let ghostLine = "";
+        if (
+          lastExercise &&
+          toNumber(lastExercise.sets) > 0 &&
+          toNumber(lastExercise.reps) > 0 &&
+          toNumber(lastExercise.weight) > 0
+        ) {
+          ghostLine = `
+            <div class="ghost-line">
+              Last session: ${lastExercise.sets} × ${lastExercise.reps} × ${lastExercise.weight} kg
+            </div>
+          `;
+        }
+
+        div.innerHTML = `
+          <h3>${exercise.name}</h3>
+          <p>${exercise.muscle}</p>
+          ${ghostLine}
+
+          <div class="grid-3">
+            <div>
+              <label>Serije</label>
+              <input type="text" inputmode="numeric" value="${exercise.sets}" data-index="${index}" data-field="sets" />
+            </div>
+            <div>
+              <label>Ponavljanja</label>
+              <input type="text" inputmode="numeric" value="${exercise.reps}" data-index="${index}" data-field="reps" />
+            </div>
+            <div>
+              <label>Težina (kg)</label>
+              <input type="text" inputmode="decimal" value="${exercise.weight}" data-index="${index}" data-field="weight" />
+            </div>
+          </div>
+
+          <div class="volume-line">
+            <span>Volumen</span>
+            <strong id="volume-${index}">${volume.toFixed(0)} kg</strong>
+          </div>
+
+          <div class="meta-row">
+            <div class="suggestion ${suggestion.cls}" id="suggestion-${index}">
+              ${suggestion.text}
+            </div>
+            <div class="e1rm-line" id="e1rm-${index}">
+              e1RM: ${e1rm > 0 ? `${e1rm.toFixed(1)} kg` : "-"}
+            </div>
+          </div>
+        `;
+
+        exerciseList.appendChild(div);
       });
     }
 
-    const lastSessionRow = sessionsSheet.getLastRow();
-    const lastSessionId = String(sessionsSheet.getRange(lastSessionRow, 1).getValue());
-    const lastSessionDate = sessionsSheet.getRange(lastSessionRow, 2).getValue();
+    function updateExerciseUI(index) {
+      const exercise = exercises[index];
+      if (!exercise) return;
 
-    const exerciseData = exerciseLogSheet.getDataRange().getValues();
-    const headers = exerciseData[0];
-    const rows = exerciseData.slice(1);
+      const lastSessionMap = buildLastSessionMap();
+      const lastExercise = lastSessionMap.get(exercise.name);
+      const suggestion = getSuggestion(exercise, lastExercise);
 
-    const sessionIdIndex = headers.indexOf("session_id");
-    const nameIndex = headers.indexOf("exercise_name");
-    const muscleIndex = headers.indexOf("muscle");
-    const setsIndex = headers.indexOf("sets");
-    const repsIndex = headers.indexOf("reps");
-    const weightIndex = headers.indexOf("weight");
+      const volumeEl = document.getElementById(`volume-${index}`);
+      const e1rmEl = document.getElementById(`e1rm-${index}`);
+      const suggestionEl = document.getElementById(`suggestion-${index}`);
 
-    const lastSessionExercises = rows
-      .filter(r => String(r[sessionIdIndex]) === lastSessionId)
-      .map(r => ({
-        name: r[nameIndex],
-        muscle: r[muscleIndex],
-        sets: r[setsIndex],
-        reps: r[repsIndex],
-        weight: r[weightIndex]
-      }));
+      const volume = calculateVolume(exercise);
+      const e1rm = calculateE1RM(exercise.weight, exercise.reps);
 
-    return jsonResponse_({
-      status: "success",
-      last_session: {
-        id: lastSessionId,
-        date: lastSessionDate,
-        exercises: lastSessionExercises
+      if (volumeEl) volumeEl.textContent = `${volume.toFixed(0)} kg`;
+      if (e1rmEl) e1rmEl.textContent = `e1RM: ${e1rm > 0 ? `${e1rm.toFixed(1)} kg` : "-"}`;
+      if (suggestionEl) {
+        suggestionEl.textContent = suggestion.text;
+        suggestionEl.className = `suggestion ${suggestion.cls}`;
+      }
+    }
+
+    function updateTotals() {
+      const totalVolume = calculateTotalVolume();
+      const duration = toNumber(durationInput.value);
+      const density = duration > 0 ? totalVolume / duration : 0;
+      const exerciseCount = getPerformedExerciseCount();
+
+      totalVolumeEl.textContent = `${totalVolume.toFixed(0)} kg`;
+      densityEl.textContent = `${density.toFixed(0)} kg/min`;
+      exerciseCountEl.textContent = exerciseCount;
+    }
+
+    function handleExerciseChange(e) {
+      const index = Number(e.target.dataset.index);
+      const field = e.target.dataset.field;
+      if (Number.isNaN(index) || !field || !exercises[index]) return;
+
+      const allowDecimal = field === "weight";
+      const sanitized = sanitizeNumericText(e.target.value, allowDecimal);
+
+      e.target.value = sanitized;
+      exercises[index][field] = sanitized;
+
+      updateExerciseUI(index);
+      updateTotals();
+      saveDraft();
+    }
+
+    function validateWorkout() {
+      const bodyWeight = toNumber(bodyWeightInput.value);
+      const duration = toNumber(durationInput.value);
+      const performedCount = getPerformedExerciseCount();
+
+      if (!dateInput.value) return "Unesi datum.";
+      if (bodyWeight <= 0) return "Unesi ispravnu telesnu težinu.";
+      if (duration <= 0) return "Unesi trajanje treninga veće od 0.";
+      if (performedCount === 0) return "Unesi bar jednu vežbu sa serijama, ponavljanjima i težinom.";
+
+      return null;
+    }
+
+    async function saveWorkout() {
+      const validationError = validateWorkout();
+      if (validationError) {
+        statusMessage.textContent = validationError;
+        return;
+      }
+
+      try {
+        statusMessage.textContent = "Snimanje treninga...";
+
+        const totalVolume = calculateTotalVolume();
+        const duration = toNumber(durationInput.value);
+        const density = duration > 0 ? totalVolume / duration : 0;
+
+        const payload = {
+          id: Date.now(),
+          date: dateInput.value,
+          body_weight: toNumber(bodyWeightInput.value),
+          duration_min: duration,
+          total_volume: Number(totalVolume.toFixed(0)),
+          density: Number(density.toFixed(0)),
+          exercises: deepCopy(exercises).map(ex => ({
+            ...ex,
+            sets: toNumber(ex.sets),
+            reps: toNumber(ex.reps),
+            weight: toNumber(ex.weight)
+          }))
+        };
+
+        const response = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          }
+        });
+
+        const result = await response.json();
+
+        if (result.status === "success") {
+          statusMessage.textContent = "Trening je uspešno sačuvan u Google Sheet.";
+          await loadBackendLastSession();
+          renderExercises();
+          updateTotals();
+          saveDraft();
+        } else {
+          statusMessage.textContent = "Greška pri snimanju: " + (result.message || "Nepoznata greška");
+        }
+      } catch (error) {
+        statusMessage.textContent = "Greška pri slanju podataka.";
+        console.error(error);
+      }
+    }
+
+    function resetWorkout() {
+      const confirmed = confirm("Da li si siguran da želiš reset treninga?");
+      if (!confirmed) return;
+
+      exercises = deepCopy(defaultExercises);
+      dateInput.value = getTodayString();
+      bodyWeightInput.value = "116.7";
+      durationInput.value = "25";
+      statusMessage.textContent = "";
+      saveDraft();
+      renderExercises();
+      updateTotals();
+    }
+
+    exerciseList.addEventListener("input", (e) => {
+      if (e.target.matches("input[data-index]")) {
+        handleExerciseChange(e);
       }
     });
-  } catch (error) {
-    return jsonResponse_({
-      status: "error",
-      message: error.message || "Unknown error"
+
+    bodyWeightInput.addEventListener("input", (e) => {
+      e.target.value = sanitizeNumericText(e.target.value, true);
+      saveDraft();
     });
-  }
-}
 
-function getOrCreateSheet_(ss, sheetName, headers) {
-  let sheet = ss.getSheetByName(sheetName);
+    durationInput.addEventListener("input", (e) => {
+      e.target.value = sanitizeNumericText(e.target.value, false);
+      updateTotals();
+      saveDraft();
+    });
 
-  if (!sheet) {
-    sheet = ss.insertSheet(sheetName);
-  }
+    dateInput.addEventListener("input", saveDraft);
+    saveWorkoutBtn.addEventListener("click", saveWorkout);
+    resetBtn.addEventListener("click", resetWorkout);
 
-  const lastRow = sheet.getLastRow();
-  const lastCol = sheet.getLastColumn();
-
-  if (lastRow === 0) {
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  } else {
-    const existingHeaders = sheet.getRange(1, 1, 1, Math.max(lastCol, headers.length)).getValues()[0];
-    const normalizedExisting = existingHeaders.slice(0, headers.length).map(String);
-    const normalizedTarget = headers.map(String);
-
-    if (JSON.stringify(normalizedExisting) !== JSON.stringify(normalizedTarget)) {
-      sheet.clear();
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    async function initApp() {
+      loadDraft();
+      await loadBackendLastSession();
+      renderExercises();
+      updateTotals();
     }
-  }
 
-  return sheet;
-}
-
-function formatSheets_(sessionsSheet, exerciseLogSheet) {
-  sessionsSheet.setFrozenRows(1);
-  exerciseLogSheet.setFrozenRows(1);
-
-  sessionsSheet.autoResizeColumns(1, sessionsSheet.getLastColumn());
-  exerciseLogSheet.autoResizeColumns(1, exerciseLogSheet.getLastColumn());
-}
-
-function calculateE1RM_(weight, reps) {
-  const w = toNumber_(weight);
-  const r = toNumber_(reps);
-
-  if (w <= 0 || r <= 0 || r >= 37) {
-    return 0;
-  }
-
-  const denominator = 1.0278 - 0.0278 * r;
-  if (denominator <= 0) {
-    return 0;
-  }
-
-  return Math.round((w / denominator) * 10) / 10;
-}
-
-function toNumber_(value) {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
-  }
-
-  if (typeof value === "string") {
-    const normalized = value.replace(",", ".").trim();
-    if (normalized === "") return 0;
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  return 0;
-}
-
-function jsonResponse_(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+    initApp();
+  </script>
+</body>
+</html>
