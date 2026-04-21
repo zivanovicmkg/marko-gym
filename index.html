@@ -101,11 +101,51 @@
       padding: 8px 10px;
     }
 
-    .e1rm-line {
+    .volume-line {
+      margin-top: 10px;
+      background: #eef2f7;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
       font-size: 12px;
       color: #6b7280;
-      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .e1rm-line {
       text-align: right;
+    }
+
+    .suggestion {
+      font-weight: bold;
+      border-radius: 10px;
+      padding: 4px 8px;
+      background: #f3f4f6;
+    }
+
+    .suggestion.up {
+      color: #065f46;
+      background: #d1fae5;
+    }
+
+    .suggestion.same {
+      color: #374151;
+      background: #e5e7eb;
+    }
+
+    .suggestion.down {
+      color: #991b1b;
+      background: #fee2e2;
     }
 
     .stat-box {
@@ -124,16 +164,6 @@
     .stat-box .big {
       font-size: 16px;
       font-weight: bold;
-    }
-
-    .volume-line {
-      margin-top: 10px;
-      background: #eef2f7;
-      border-radius: 12px;
-      padding: 10px 12px;
-      display: flex;
-      justify-content: space-between;
-      font-size: 14px;
     }
 
     .footer-note {
@@ -191,6 +221,11 @@
       .secondary-btn {
         width: 100%;
       }
+
+      .meta-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
@@ -207,7 +242,7 @@
         </div>
         <div>
           <label for="bodyWeight">Telesna težina (kg)</label>
-          <input type="number" id="bodyWeight" step="0.1" min="0" />
+          <input type="text" id="bodyWeight" inputmode="decimal" />
         </div>
       </div>
     </div>
@@ -221,7 +256,7 @@
       <div class="grid-2">
         <div>
           <label for="duration">Trajanje treninga (min)</label>
-          <input type="number" id="duration" step="1" min="0" />
+          <input type="text" id="duration" inputmode="numeric" />
         </div>
       </div>
 
@@ -256,18 +291,18 @@
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcWdCBEuoRNunnLqYo7YwxHW5e9bzg2mf-jUrsbBenzYCSc37bujV6PGBjg3njtralIw/exec";
 
-    const STORAGE_KEY = "marko_gym_session_draft_v1";
-    const LAST_SESSION_KEY = "marko_gym_last_session_v1";
+    const STORAGE_KEY = "marko_gym_session_draft_v3";
+    const LAST_SESSION_KEY = "marko_gym_last_session_v3";
 
     const defaultExercises = [
-      { name: "Alternating dumbbell curl", muscle: "Biceps", sets: 3, reps: 9, weight: 20 },
-      { name: "Alternating front dumbbell curl", muscle: "Biceps + rame", sets: 3, reps: 9, weight: 20 },
-      { name: "Reverse fly", muscle: "Rame / gornja leđa", sets: 3, reps: 8, weight: 16 },
-      { name: "Row", muscle: "Leđa", sets: 3, reps: 10, weight: 35 },
-      { name: "Leg press", muscle: "Noge / gluteus", sets: 3, reps: 8, weight: 40 },
-      { name: "Bench press", muscle: "Grudi / triceps", sets: 3, reps: 8, weight: 40 },
-      { name: "Machine Chest Press", muscle: "Grudi / triceps", sets: 3, reps: 10, weight: 35 },
-      { name: "Deadlift", muscle: "Leđa / zadnja loža / gluteus", sets: 3, reps: 8, weight: 40 }
+      { name: "Alternating dumbbell curl", muscle: "Biceps", sets: "3", reps: "9", weight: "20" },
+      { name: "Alternating front dumbbell curl", muscle: "Biceps + rame", sets: "3", reps: "9", weight: "20" },
+      { name: "Reverse fly", muscle: "Rame / gornja leđa", sets: "3", reps: "8", weight: "16" },
+      { name: "Row", muscle: "Leđa", sets: "3", reps: "10", weight: "35" },
+      { name: "Leg press", muscle: "Noge / gluteus", sets: "3", reps: "8", weight: "40" },
+      { name: "Bench press", muscle: "Grudi / triceps", sets: "3", reps: "8", weight: "40" },
+      { name: "Machine Chest Press", muscle: "Grudi / triceps", sets: "3", reps: "10", weight: "35" },
+      { name: "Deadlift", muscle: "Leđa / zadnja loža / gluteus", sets: "3", reps: "8", weight: "40" }
     ];
 
     let exercises = deepCopy(defaultExercises);
@@ -295,13 +330,43 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
+    function toNumber(value) {
+      if (typeof value === "number") return value;
+      if (typeof value !== "string") return 0;
+
+      const normalized = value.replace(",", ".").trim();
+      if (normalized === "") return 0;
+
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function sanitizeNumericText(value, allowDecimal = false) {
+      const str = String(value ?? "");
+      let cleaned = str.replace(",", ".");
+
+      if (allowDecimal) {
+        cleaned = cleaned.replace(/[^0-9.]/g, "");
+        const firstDot = cleaned.indexOf(".");
+        if (firstDot !== -1) {
+          cleaned =
+            cleaned.slice(0, firstDot + 1) +
+            cleaned.slice(firstDot + 1).replace(/\./g, "");
+        }
+      } else {
+        cleaned = cleaned.replace(/\D/g, "");
+      }
+
+      return cleaned;
+    }
+
     function calculateVolume(exercise) {
-      return (Number(exercise.sets) || 0) * (Number(exercise.reps) || 0) * (Number(exercise.weight) || 0);
+      return toNumber(exercise.sets) * toNumber(exercise.reps) * toNumber(exercise.weight);
     }
 
     function calculateE1RM(weight, reps) {
-      const w = Number(weight) || 0;
-      const r = Number(reps) || 0;
+      const w = toNumber(weight);
+      const r = toNumber(reps);
 
       if (w <= 0 || r <= 0) return 0;
       if (r >= 37) return 0;
@@ -313,7 +378,11 @@
     }
 
     function getPerformedExerciseCount() {
-      return exercises.filter(ex => (Number(ex.sets) || 0) > 0 && (Number(ex.reps) || 0) > 0 && (Number(ex.weight) || 0) > 0).length;
+      return exercises.filter(ex =>
+        toNumber(ex.sets) > 0 &&
+        toNumber(ex.reps) > 0 &&
+        toNumber(ex.weight) > 0
+      ).length;
     }
 
     function calculateTotalVolume() {
@@ -330,6 +399,21 @@
         console.error("Greška pri čitanju poslednjeg treninga:", error);
         return null;
       }
+    }
+
+    function buildLastSessionMap() {
+      const lastSession = getLastSession();
+      const map = new Map();
+
+      if (!lastSession || !Array.isArray(lastSession.exercises)) {
+        return map;
+      }
+
+      lastSession.exercises.forEach(ex => {
+        map.set(ex.name, ex);
+      });
+
+      return map;
     }
 
     function saveDraft() {
@@ -372,19 +456,29 @@
       }
     }
 
-    function buildLastSessionMap() {
-      const lastSession = getLastSession();
-      const map = new Map();
-
-      if (!lastSession || !Array.isArray(lastSession.exercises)) {
-        return map;
+    function getSuggestion(currentExercise, lastExercise) {
+      if (!lastExercise) {
+        return { text: "→ ostavi", cls: "same" };
       }
 
-      lastSession.exercises.forEach(ex => {
-        map.set(ex.name, ex);
-      });
+      const currentE1RM = calculateE1RM(currentExercise.weight, currentExercise.reps);
+      const lastE1RM = calculateE1RM(lastExercise.weight, lastExercise.reps);
 
-      return map;
+      if (currentE1RM <= 0 || lastE1RM <= 0) {
+        return { text: "→ ostavi", cls: "same" };
+      }
+
+      const diff = currentE1RM - lastE1RM;
+
+      if (diff >= 1.0) {
+        return { text: "↑ povećaj", cls: "up" };
+      }
+
+      if (diff <= -1.0) {
+        return { text: "↓ smanji", cls: "down" };
+      }
+
+      return { text: "→ ostavi", cls: "same" };
     }
 
     function renderExercises() {
@@ -398,9 +492,15 @@
         const volume = calculateVolume(exercise);
         const e1rm = calculateE1RM(exercise.weight, exercise.reps);
         const lastExercise = lastSessionMap.get(exercise.name);
+        const suggestion = getSuggestion(exercise, lastExercise);
 
         let ghostLine = "";
-        if (lastExercise && (Number(lastExercise.sets) || 0) > 0 && (Number(lastExercise.reps) || 0) > 0 && (Number(lastExercise.weight) || 0) > 0) {
+        if (
+          lastExercise &&
+          toNumber(lastExercise.sets) > 0 &&
+          toNumber(lastExercise.reps) > 0 &&
+          toNumber(lastExercise.weight) > 0
+        ) {
           ghostLine = `
             <div class="ghost-line">
               Last session: ${lastExercise.sets} × ${lastExercise.reps} × ${lastExercise.weight} kg
@@ -416,15 +516,15 @@
           <div class="grid-3">
             <div>
               <label>Serije</label>
-              <input type="number" min="0" step="1" value="${exercise.sets}" data-index="${index}" data-field="sets" />
+              <input type="text" inputmode="numeric" value="${exercise.sets}" data-index="${index}" data-field="sets" />
             </div>
             <div>
               <label>Ponavljanja</label>
-              <input type="number" min="0" step="1" value="${exercise.reps}" data-index="${index}" data-field="reps" />
+              <input type="text" inputmode="numeric" value="${exercise.reps}" data-index="${index}" data-field="reps" />
             </div>
             <div>
               <label>Težina (kg)</label>
-              <input type="number" min="0" step="0.1" value="${exercise.weight}" data-index="${index}" data-field="weight" />
+              <input type="text" inputmode="decimal" value="${exercise.weight}" data-index="${index}" data-field="weight" />
             </div>
           </div>
 
@@ -433,8 +533,13 @@
             <strong id="volume-${index}">${volume.toFixed(0)} kg</strong>
           </div>
 
-          <div class="e1rm-line" id="e1rm-${index}">
-            e1RM: ${e1rm > 0 ? `${e1rm.toFixed(1)} kg` : "-"}
+          <div class="meta-row">
+            <div class="suggestion ${suggestion.cls}" id="suggestion-${index}">
+              ${suggestion.text}
+            </div>
+            <div class="e1rm-line" id="e1rm-${index}">
+              e1RM: ${e1rm > 0 ? `${e1rm.toFixed(1)} kg` : "-"}
+            </div>
           </div>
         `;
 
@@ -446,8 +551,13 @@
       const exercise = exercises[index];
       if (!exercise) return;
 
+      const lastSessionMap = buildLastSessionMap();
+      const lastExercise = lastSessionMap.get(exercise.name);
+      const suggestion = getSuggestion(exercise, lastExercise);
+
       const volumeEl = document.getElementById(`volume-${index}`);
       const e1rmEl = document.getElementById(`e1rm-${index}`);
+      const suggestionEl = document.getElementById(`suggestion-${index}`);
 
       const volume = calculateVolume(exercise);
       const e1rm = calculateE1RM(exercise.weight, exercise.reps);
@@ -459,11 +569,16 @@
       if (e1rmEl) {
         e1rmEl.textContent = `e1RM: ${e1rm > 0 ? `${e1rm.toFixed(1)} kg` : "-"}`;
       }
+
+      if (suggestionEl) {
+        suggestionEl.textContent = suggestion.text;
+        suggestionEl.className = `suggestion ${suggestion.cls}`;
+      }
     }
 
     function updateTotals() {
       const totalVolume = calculateTotalVolume();
-      const duration = Number(durationInput.value) || 0;
+      const duration = toNumber(durationInput.value);
       const density = duration > 0 ? totalVolume / duration : 0;
       const exerciseCount = getPerformedExerciseCount();
 
@@ -478,7 +593,11 @@
 
       if (Number.isNaN(index) || !field || !exercises[index]) return;
 
-      exercises[index][field] = Number(e.target.value) || 0;
+      const allowDecimal = field === "weight";
+      const sanitized = sanitizeNumericText(e.target.value, allowDecimal);
+
+      e.target.value = sanitized;
+      exercises[index][field] = sanitized;
 
       updateExerciseUI(index);
       updateTotals();
@@ -486,8 +605,8 @@
     }
 
     function validateWorkout() {
-      const bodyWeight = Number(bodyWeightInput.value) || 0;
-      const duration = Number(durationInput.value) || 0;
+      const bodyWeight = toNumber(bodyWeightInput.value);
+      const duration = toNumber(durationInput.value);
       const performedCount = getPerformedExerciseCount();
 
       if (!dateInput.value) {
@@ -520,17 +639,22 @@
         statusMessage.textContent = "Snimanje treninga...";
 
         const totalVolume = calculateTotalVolume();
-        const duration = Number(durationInput.value) || 0;
+        const duration = toNumber(durationInput.value);
         const density = duration > 0 ? totalVolume / duration : 0;
 
         const payload = {
           id: Date.now(),
           date: dateInput.value,
-          body_weight: Number(bodyWeightInput.value) || 0,
+          body_weight: toNumber(bodyWeightInput.value),
           duration_min: duration,
           total_volume: Number(totalVolume.toFixed(0)),
           density: Number(density.toFixed(0)),
-          exercises: deepCopy(exercises)
+          exercises: deepCopy(exercises).map(ex => ({
+            ...ex,
+            sets: toNumber(ex.sets),
+            reps: toNumber(ex.reps),
+            weight: toNumber(ex.weight)
+          }))
         };
 
         const response = await fetch(SCRIPT_URL, {
@@ -547,6 +671,8 @@
           localStorage.setItem(LAST_SESSION_KEY, JSON.stringify(payload));
           saveDraft();
           statusMessage.textContent = "Trening je uspešno sačuvan u Google Sheet.";
+          renderExercises();
+          updateTotals();
         } else {
           statusMessage.textContent = "Greška pri snimanju: " + (result.message || "Nepoznata greška");
         }
@@ -576,12 +702,17 @@
       }
     });
 
-    durationInput.addEventListener("input", () => {
+    bodyWeightInput.addEventListener("input", (e) => {
+      e.target.value = sanitizeNumericText(e.target.value, true);
+      saveDraft();
+    });
+
+    durationInput.addEventListener("input", (e) => {
+      e.target.value = sanitizeNumericText(e.target.value, false);
       updateTotals();
       saveDraft();
     });
 
-    bodyWeightInput.addEventListener("input", saveDraft);
     dateInput.addEventListener("input", saveDraft);
 
     saveWorkoutBtn.addEventListener("click", saveWorkout);
