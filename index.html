@@ -49,13 +49,8 @@
       gap: 12px;
     }
 
-    .grid-2 {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .grid-3 {
-      grid-template-columns: 1fr 1fr 1fr;
-    }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
 
     label {
       display: block;
@@ -100,9 +95,32 @@
       background: #fafafa;
     }
 
-    .exercise h3 {
-      font-size: 17px;
+    .exercise-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
       margin-bottom: 4px;
+      padding: 4px 8px 4px 0;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+
+    .exercise-header:hover,
+    .exercise-header:active {
+      background: #eef2f7;
+    }
+
+    .exercise-header h3 {
+      font-size: 17px;
+      margin: 0;
+    }
+
+    .history-icon {
+      font-size: 14px;
+      color: #6b7280;
+      font-weight: normal;
     }
 
     .exercise p {
@@ -141,9 +159,7 @@
       flex-wrap: wrap;
     }
 
-    .e1rm-line {
-      text-align: right;
-    }
+    .e1rm-line { text-align: right; }
 
     .suggestion {
       font-weight: bold;
@@ -152,20 +168,9 @@
       background: #f3f4f6;
     }
 
-    .suggestion.up {
-      color: #065f46;
-      background: #d1fae5;
-    }
-
-    .suggestion.same {
-      color: #374151;
-      background: #e5e7eb;
-    }
-
-    .suggestion.down {
-      color: #991b1b;
-      background: #fee2e2;
-    }
+    .suggestion.up { color: #065f46; background: #d1fae5; }
+    .suggestion.same { color: #374151; background: #e5e7eb; }
+    .suggestion.down { color: #991b1b; background: #fee2e2; }
 
     .stat-box {
       background: #f3f4f6;
@@ -208,9 +213,7 @@
       margin-bottom: 4px;
     }
 
-    .notes-block {
-      margin-top: 18px;
-    }
+    .notes-block { margin-top: 18px; }
 
     .button-row {
       margin-top: 18px;
@@ -247,24 +250,144 @@
       min-height: 20px;
     }
 
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 20px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .modal-subtitle {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .modal-close {
+      background: #f3f4f6;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      border: none;
+      font-size: 20px;
+      color: #374151;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+
+    .history-entry {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #fafafa;
+    }
+
+    .history-entry.latest {
+      border-color: #a7f3d0;
+      background: #ecfdf5;
+    }
+
+    .history-date {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-latest-badge {
+      font-size: 11px;
+      background: #10b981;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .history-main {
+      font-size: 16px;
+      font-weight: bold;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .history-details {
+      font-size: 12px;
+      color: #6b7280;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .history-notes {
+      font-size: 12px;
+      color: #713f12;
+      background: #fef9c3;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 6px 8px;
+      margin-top: 6px;
+    }
+
+    .modal-empty {
+      text-align: center;
+      padding: 30px 20px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .modal-loading {
+      text-align: center;
+      padding: 30px 20px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
     @media (max-width: 480px) {
-      .grid-2, .grid-3 {
-        grid-template-columns: 1fr;
-      }
-
-      .button-row {
-        flex-direction: column;
-      }
-
-      .primary-btn,
-      .secondary-btn {
-        width: 100%;
-      }
-
-      .meta-row {
-        flex-direction: column;
-        align-items: flex-start;
-      }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .button-row { flex-direction: column; }
+      .primary-btn, .secondary-btn { width: 100%; }
+      .meta-row { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
@@ -329,8 +452,22 @@
       <div class="status" id="statusMessage"></div>
 
       <div class="footer-note">
-        Aplikacija automatski računa volumen, gustinu i e1RM.
+        Klikni na naslov vežbe da vidiš istoriju.
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="modalTitle">Istorija</div>
+          <div class="modal-subtitle" id="modalSubtitle">Zadnjih 5 treninga</div>
+        </div>
+        <button class="modal-close" id="modalClose">×</button>
+      </div>
+      <div id="modalContent"></div>
     </div>
   </div>
 
@@ -365,9 +502,13 @@
     const resetBtn = document.getElementById("resetBtn");
     const statusMessage = document.getElementById("statusMessage");
 
-    function deepCopy(obj) {
-      return JSON.parse(JSON.stringify(obj));
-    }
+    const historyModal = document.getElementById("historyModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSubtitle = document.getElementById("modalSubtitle");
+    const modalContent = document.getElementById("modalContent");
+    const modalClose = document.getElementById("modalClose");
+
+    function deepCopy(obj) { return JSON.parse(JSON.stringify(obj)); }
 
     function getTodayString() {
       const today = new Date();
@@ -380,10 +521,8 @@
     function toNumber(value) {
       if (typeof value === "number") return value;
       if (typeof value !== "string") return 0;
-
       const normalized = value.replace(",", ".").trim();
       if (normalized === "") return 0;
-
       const parsed = Number(normalized);
       return Number.isFinite(parsed) ? parsed : 0;
     }
@@ -396,14 +535,11 @@
         cleaned = cleaned.replace(/[^0-9.]/g, "");
         const firstDot = cleaned.indexOf(".");
         if (firstDot !== -1) {
-          cleaned =
-            cleaned.slice(0, firstDot + 1) +
-            cleaned.slice(firstDot + 1).replace(/\./g, "");
+          cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "");
         }
       } else {
         cleaned = cleaned.replace(/\D/g, "");
       }
-
       return cleaned;
     }
 
@@ -423,25 +559,20 @@
     function calculateE1RM(weight, reps) {
       const w = toNumber(weight);
       const r = toNumber(reps);
-
       if (w <= 0 || r <= 0 || r >= 37) return 0;
-
       const denominator = 1.0278 - 0.0278 * r;
       if (denominator <= 0) return 0;
-
       return w / denominator;
     }
 
     function getPerformedExerciseCount() {
       return exercises.filter(ex =>
-        toNumber(ex.sets) > 0 &&
-        toNumber(ex.reps) > 0 &&
-        toNumber(ex.weight) > 0
+        toNumber(ex.sets) > 0 && toNumber(ex.reps) > 0 && toNumber(ex.weight) > 0
       ).length;
     }
 
     function calculateTotalVolume() {
-      return exercises.reduce((sum, exercise) => sum + calculateVolume(exercise), 0);
+      return exercises.reduce((sum, ex) => sum + calculateVolume(ex), 0);
     }
 
     function saveDraft() {
@@ -452,7 +583,6 @@
         notes: notesInput.value,
         exercises: deepCopy(exercises)
       };
-
       localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
     }
 
@@ -470,7 +600,6 @@
 
       try {
         const draft = JSON.parse(raw);
-
         dateInput.value = draft.date || getTodayString();
         bodyWeightInput.value = draft.bodyWeight || "116.7";
         durationInput.value = draft.duration || "25";
@@ -491,11 +620,7 @@
     async function loadBackendLastSession() {
       try {
         const freshUrl = `${SCRIPT_URL}?t=${Date.now()}`;
-        const response = await fetch(freshUrl, {
-          method: "GET",
-          cache: "no-store"
-        });
-
+        const response = await fetch(freshUrl, { method: "GET", cache: "no-store" });
         const result = await response.json();
 
         if (result.status === "success" && result.last_session) {
@@ -511,7 +636,6 @@
 
     function renderLastNotes() {
       lastNotesBlock.innerHTML = "";
-
       if (!backendLastSession) return;
       if (!backendLastSession.notes || !backendLastSession.notes.trim()) return;
 
@@ -526,35 +650,19 @@
 
     function buildLastSessionMap() {
       const map = new Map();
-
-      if (!backendLastSession || !Array.isArray(backendLastSession.exercises)) {
-        return map;
-      }
-
-      backendLastSession.exercises.forEach(ex => {
-        map.set(ex.name, ex);
-      });
-
+      if (!backendLastSession || !Array.isArray(backendLastSession.exercises)) return map;
+      backendLastSession.exercises.forEach(ex => { map.set(ex.name, ex); });
       return map;
     }
 
     function getSuggestion(currentExercise, lastExercise) {
-      if (!lastExercise) {
-        return { text: "→ ostavi", cls: "same" };
-      }
-
+      if (!lastExercise) return { text: "→ ostavi", cls: "same" };
       const currentE1RM = calculateE1RM(currentExercise.weight, currentExercise.reps);
       const lastE1RM = calculateE1RM(lastExercise.weight, lastExercise.reps);
-
-      if (currentE1RM <= 0 || lastE1RM <= 0) {
-        return { text: "→ ostavi", cls: "same" };
-      }
-
+      if (currentE1RM <= 0 || lastE1RM <= 0) return { text: "→ ostavi", cls: "same" };
       const diff = currentE1RM - lastE1RM;
-
       if (diff >= 1.0) return { text: "↑ povećaj", cls: "up" };
       if (diff <= -1.0) return { text: "↓ smanji", cls: "down" };
-
       return { text: "→ ostavi", cls: "same" };
     }
 
@@ -586,7 +694,10 @@
         }
 
         div.innerHTML = `
-          <h3>${escapeHtml(exercise.name)}</h3>
+          <div class="exercise-header" data-exercise-name="${escapeHtml(exercise.name)}">
+            <h3>${escapeHtml(exercise.name)}</h3>
+            <span class="history-icon">📊 istorija</span>
+          </div>
           <p>${escapeHtml(exercise.muscle)}</p>
           ${ghostLine}
 
@@ -611,12 +722,8 @@
           </div>
 
           <div class="meta-row">
-            <div class="suggestion ${suggestion.cls}" id="suggestion-${index}">
-              ${suggestion.text}
-            </div>
-            <div class="e1rm-line" id="e1rm-${index}">
-              e1RM: ${e1rm > 0 ? `${e1rm.toFixed(1)} kg` : "-"}
-            </div>
+            <div class="suggestion ${suggestion.cls}" id="suggestion-${index}">${suggestion.text}</div>
+            <div class="e1rm-line" id="e1rm-${index}">e1RM: ${e1rm > 0 ? `${e1rm.toFixed(1)} kg` : "-"}</div>
           </div>
         `;
 
@@ -674,6 +781,71 @@
       saveDraft();
     }
 
+    // ===== MODAL =====
+    function openHistoryModal(exerciseName) {
+      modalTitle.textContent = exerciseName;
+      modalSubtitle.textContent = "Učitavam istoriju...";
+      modalContent.innerHTML = '<div class="modal-loading">⏳ Učitavam...</div>';
+      historyModal.classList.add("active");
+      fetchExerciseHistory(exerciseName);
+    }
+
+    function closeHistoryModal() {
+      historyModal.classList.remove("active");
+    }
+
+    async function fetchExerciseHistory(exerciseName) {
+      try {
+        const url = `${SCRIPT_URL}?exercise=${encodeURIComponent(exerciseName)}&t=${Date.now()}`;
+        const response = await fetch(url, { method: "GET", cache: "no-store" });
+        const result = await response.json();
+
+        if (result.status !== "success") {
+          modalContent.innerHTML = `<div class="modal-empty">Greška: ${escapeHtml(result.message || "Nepoznata greška")}</div>`;
+          return;
+        }
+
+        renderHistory(result.history || [], result.total_count || 0);
+      } catch (error) {
+        console.error("Greška:", error);
+        modalContent.innerHTML = '<div class="modal-empty">Greška pri učitavanju istorije.</div>';
+      }
+    }
+
+    function renderHistory(history, totalCount) {
+      if (!history || history.length === 0) {
+        modalSubtitle.textContent = "Nema istorije";
+        modalContent.innerHTML = '<div class="modal-empty">Još nisi radio ovu vežbu.<br>Posle prvog treninga pojaviće se istorija ovde.</div>';
+        return;
+      }
+
+      modalSubtitle.textContent = `Zadnjih ${history.length} ${history.length === 1 ? "trening" : "treninga"}${totalCount > history.length ? ` (od ukupno ${totalCount})` : ""}`;
+
+      const html = history.map((entry, idx) => {
+        const isLatest = idx === 0;
+        const notesHtml = entry.notes && entry.notes.trim()
+          ? `<div class="history-notes">📝 ${escapeHtml(entry.notes)}</div>`
+          : "";
+
+        return `
+          <div class="history-entry ${isLatest ? "latest" : ""}">
+            <div class="history-date">
+              <span>${escapeHtml(entry.date)}</span>
+              ${isLatest ? '<span class="history-latest-badge">POSLEDNJI</span>' : ""}
+            </div>
+            <div class="history-main">${entry.sets} × ${entry.reps} × ${entry.weight} kg</div>
+            <div class="history-details">
+              <span>Volumen: ${entry.volume.toFixed(0)} kg</span>
+              <span>e1RM: ${entry.e1rm.toFixed(1)} kg</span>
+            </div>
+            ${notesHtml}
+          </div>
+        `;
+      }).join("");
+
+      modalContent.innerHTML = html;
+    }
+
     function validateWorkout() {
       const bodyWeight = toNumber(bodyWeightInput.value);
       const duration = toNumber(durationInput.value);
@@ -683,7 +855,6 @@
       if (bodyWeight <= 0) return "Unesi ispravnu telesnu težinu.";
       if (duration <= 0) return "Unesi trajanje treninga veće od 0.";
       if (performedCount === 0) return "Unesi bar jednu vežbu sa serijama, ponavljanjima i težinom.";
-
       return null;
     }
 
@@ -720,9 +891,7 @@
         const response = await fetch(SCRIPT_URL, {
           method: "POST",
           body: JSON.stringify(payload),
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8"
-          }
+          headers: { "Content-Type": "text/plain;charset=utf-8" }
         });
 
         const result = await response.json();
@@ -759,9 +928,29 @@
       updateTotals();
     }
 
+    // ===== EVENT LISTENERS =====
     exerciseList.addEventListener("input", (e) => {
       if (e.target.matches("input[data-index]")) {
         handleExerciseChange(e);
+      }
+    });
+
+    exerciseList.addEventListener("click", (e) => {
+      const header = e.target.closest(".exercise-header");
+      if (header) {
+        const exerciseName = header.dataset.exerciseName;
+        if (exerciseName) openHistoryModal(exerciseName);
+      }
+    });
+
+    modalClose.addEventListener("click", closeHistoryModal);
+    historyModal.addEventListener("click", (e) => {
+      if (e.target === historyModal) closeHistoryModal();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && historyModal.classList.contains("active")) {
+        closeHistoryModal();
       }
     });
 
